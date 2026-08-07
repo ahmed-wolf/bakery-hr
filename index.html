@@ -232,6 +232,7 @@
     <div class="stat-row" id="dailyStats"></div>
     <div class="controls">
       <button class="btn-info" id="openManualBtn">➕ إضافة بصمة يدوية</button>
+      <button class="btn-ghost" id="toggleIgnoredBtn">👀 إظهار المتجاهل</button>
       <div class="field">
         <label>من تاريخ</label>
         <input type="date" id="dailyDateFrom">
@@ -293,6 +294,7 @@
   <label>نوع البصمة</label>
   <select id="manualStatus"><option value="IN">دخول</option><option value="OUT">خروج</option></select>
   <label>المصروف (لو سحب فلوس دلوقتي)</label><input type="number" id="manualMasrouf" value="0">
+  <label>سبب البصمة اليدوي (اختياري)</label><input type="text" id="manualReason" placeholder="مثلاً: نسي يبصم، عطل في الماكينة">
   <div class="dialog-btns">
     <button class="btn-ok" id="saveManualBtn">حفظ البصمة</button>
     <button class="btn-ghost" id="cancelManualBtn">إلغاء</button>
@@ -332,11 +334,15 @@
 <div id="printArea"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxyLZ5y4wMNFh64Sq2jsyO-o9_cOesAetyyTt-wAtRPA5EQmEDOMmSH14iBol6nubwX/exec";
+const API_URL = "
+https://script.google.com/macros/s/AKfycbwGIoLgeclTzo9wiOm8kHDmxliKDyXeHbHcBqh87zfJ1zC-rK8k3zpu0ORX5ko9zpsI/exec 
+
+";
 const SARAK_PIN = "1234";
 
 let appData = { employees: [], logs: [], transactions: [] };
 let sarakUnlocked = false;
+let showIgnored = false;
 
 function showToast(msg, type = "info") {
   const icons = { success: "✅", error: "⚠️", info: "ℹ️" };
@@ -427,6 +433,8 @@ function renderDailyTab() {
 
   if (empFilter) logs = logs.filter(l => l.userId === empFilter);
 
+  if (!showIgnored) logs = logs.filter(l => l.status !== "IGNORE");
+
   const total = logs.length;
   const missing = logs.filter(l => !l.status).length;
   const manual = logs.filter(l => l.manual).length;
@@ -494,7 +502,7 @@ function rowTemplate(log) {
             <option value="IGNORE" ${log.status === "IGNORE" ? "selected" : ""}>تجاهل</option>
           </select>
           ${missing ? '<span class="tag missing">غير محدد</span>' : ""}
-          ${log.manual ? '<span class="tag manual">يدوي</span>' : ""}
+          ${log.manual ? `<span class="tag manual" title="${log.reason ? log.reason.replace(/"/g, '&quot;') : ''}">يدوي${log.reason ? " · " + log.reason : ""}</span>` : ""}
         </div>
       </td>
       <td data-label="المصروف"><input type="number" class="masrouf-input" data-row="${log.row}" value="${log.masrouf || 0}"></td>
@@ -510,6 +518,12 @@ function attachDailyRowEvents() {
       updateLocalLog(sel.dataset.row, "status", sel.value);
       commitRowSave(sel.dataset.row);
       sel.closest("tr").classList.toggle("row-missing", !sel.value);
+      if (sel.value === "IGNORE" && !showIgnored) {
+        const tr = sel.closest("tr");
+        tr.style.transition = "opacity 0.2s ease";
+        tr.style.opacity = "0";
+        setTimeout(() => tr.remove(), 200);
+      }
     });
   });
   document.querySelectorAll(".masrouf-input").forEach(inp => {
@@ -553,14 +567,16 @@ document.getElementById("saveManualBtn").addEventListener("click", async () => {
   const time = document.getElementById("manualTime").value;
   const status = document.getElementById("manualStatus").value;
   const masrouf = document.getElementById("manualMasrouf").value;
+  const reason = document.getElementById("manualReason").value.trim();
   if (!time) { showToast("لازم تختار الوقت", "error"); return; }
   document.getElementById("saveManualBtn").disabled = true;
   try {
     await fetch(API_URL, {
       method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "add_manual", userId, timestamp: time, status, masrouf }),
+      body: JSON.stringify({ action: "add_manual", userId, timestamp: time, status, masrouf, reason }),
     });
     document.getElementById("manualDialog").close();
+    document.getElementById("manualReason").value = "";
     showToast("تم إضافة البصمة", "success");
     await loadData();
   } catch (err) { showToast("فشلت الإضافة", "error"); }
@@ -803,6 +819,11 @@ document.getElementById("loadBtn").addEventListener("click", loadData);
 document.getElementById("dailyDateFrom").addEventListener("change", renderDailyTab);
 document.getElementById("dailyDateTo").addEventListener("change", renderDailyTab);
 document.getElementById("filterEmpDaily").addEventListener("change", renderDailyTab);
+document.getElementById("toggleIgnoredBtn").addEventListener("click", () => {
+  showIgnored = !showIgnored;
+  document.getElementById("toggleIgnoredBtn").textContent = showIgnored ? "🙈 إخفاء المتجاهل" : "👀 إظهار المتجاهل";
+  renderDailyTab();
+});
 document.getElementById("clearDateBtn").addEventListener("click", () => {
   document.getElementById("dailyDateFrom").value = "";
   document.getElementById("dailyDateTo").value = "";
