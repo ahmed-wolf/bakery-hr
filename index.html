@@ -290,7 +290,8 @@
 <dialog id="manualDialog">
   <h3>➕ إضافة بصمة يدوية</h3>
   <label>الموظف</label><select id="manualEmp"></select>
-  <label>تاريخ ووقت البصمة</label><input type="datetime-local" id="manualTime">
+  <label>تاريخ البصمة</label><input type="date" id="manualDate">
+  <label>وقت البصمة</label><input type="time" id="manualTimeOnly">
   <label>نوع البصمة</label>
   <select id="manualStatus"><option value="IN">دخول</option><option value="OUT">خروج</option></select>
   <label>المصروف (لو سحب فلوس دلوقتي)</label><input type="number" id="manualMasrouf" value="0">
@@ -559,13 +560,18 @@ async function commitRowSave(rowNum) {
 
 document.getElementById("openManualBtn").addEventListener("click", () => document.getElementById("manualDialog").showModal());
 document.getElementById("cancelManualBtn").addEventListener("click", () => document.getElementById("manualDialog").close());
+
 document.getElementById("saveManualBtn").addEventListener("click", async () => {
   const userId = document.getElementById("manualEmp").value;
-  const time = document.getElementById("manualTime").value;
+  const dateVal = document.getElementById("manualDate").value;
+  const timeVal = document.getElementById("manualTimeOnly").value;
+  const time = (dateVal && timeVal) ? `${dateVal}T${timeVal}` : "";
   const status = document.getElementById("manualStatus").value;
   const masrouf = document.getElementById("manualMasrouf").value;
   const reason = document.getElementById("manualReason").value.trim();
-  if (!time) { showToast("لازم تختار الوقت", "error"); return; }
+  
+  if (!time) { showToast("لازم تختار التاريخ والوقت", "error"); return; }
+  
   document.getElementById("saveManualBtn").disabled = true;
   try {
     await fetch(API_URL, {
@@ -573,7 +579,12 @@ document.getElementById("saveManualBtn").addEventListener("click", async () => {
       body: JSON.stringify({ action: "add_manual", userId, timestamp: time, status, masrouf, reason }),
     });
     document.getElementById("manualDialog").close();
+    
+    // تصفير الخانات بعد الحفظ بنجاح
     document.getElementById("manualReason").value = "";
+    document.getElementById("manualDate").value = "";
+    document.getElementById("manualTimeOnly").value = "";
+    
     showToast("تم إضافة البصمة", "success");
     await loadData();
   } catch (err) { showToast("فشلت الإضافة", "error"); }
