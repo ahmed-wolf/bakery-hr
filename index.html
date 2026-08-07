@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة تحكم المخبز | الحضور والسرك</title>
 <style>
-  /* =================================================================
-     DESIGN TOKENS
-     ================================================================= */
   :root {
     --bg: #0a0c0f;
     --panel: #14171c;
@@ -31,7 +28,7 @@
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--amber-soft); color: var(--amber); }
-  
+
   body {
     margin: 0;
     background: radial-gradient(1200px 500px at 15% -10%, rgba(232,163,61,0.06), transparent), var(--bg);
@@ -40,10 +37,9 @@
     padding: 0 0 100px;
     min-height: 100vh;
   }
-  
+
   a, button, select, input { font-family: inherit; }
-  
-  /* -------------------- HEADER -------------------- */
+
   header {
     position: sticky;
     top: 0;
@@ -65,8 +61,7 @@
   .brand .sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
   .header-actions { display: flex; align-items: center; gap: 10px; }
   .last-sync { font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
-  
-  /* -------------------- BUTTONS -------------------- */
+
   button {
     cursor: pointer; background: var(--panel-2); border: 1px solid var(--line);
     color: var(--text); padding: 9px 16px; border-radius: 8px;
@@ -82,8 +77,7 @@
   button.btn-ghost { background: transparent; }
   button.btn-sm { padding: 6px 11px; font-size: 12px; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  
-  /* -------------------- LAYOUT & TABS -------------------- */
+
   main { max-width: 1180px; margin: 0 auto; padding: 22px 24px; }
   .tabs {
     display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line);
@@ -98,8 +92,7 @@
   .view { display: none; animation: fadeUp 0.28s ease; }
   .view.active { display: block; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  
-  /* -------------------- CONTROLS BAR -------------------- */
+
   .controls { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 11px; color: var(--text-faint); }
@@ -109,16 +102,14 @@
   }
   select:focus, input:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
   .spacer { flex: 1; }
-  
-  /* -------------------- SUMMARY CARDS -------------------- */
+
   .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
   .stat-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
   .stat-card .label { font-size: 11px; color: var(--text-faint); margin-bottom: 6px; }
   .stat-card .value { font-family: var(--mono); font-size: 21px; font-weight: 700; }
   .stat-card .value.amber { color: var(--amber); }
   .stat-card .value.ok { color: var(--ok); }
-  
-  /* -------------------- EMPLOYEE GROUP CARDS -------------------- */
+
   .emp-group {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow);
@@ -135,7 +126,7 @@
   .emp-group-header .name { font-weight: 700; font-size: 14.5px; }
   .emp-group-header .id { font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
   .emp-group-header .count-badge { margin-inline-start: auto; background: var(--panel-3); color: var(--text-dim); font-size: 11px; padding: 3px 10px; border-radius: 20px; }
-  
+
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th { text-align: right; padding: 9px 14px; color: var(--text-faint); font-size: 11px; border-bottom: 1px solid var(--line); font-weight: 600; }
   tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -146,7 +137,10 @@
   .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .tag.missing { background: var(--danger-soft); color: var(--danger); }
   .tag.manual { background: rgba(77,141,224,0.15); color: var(--info); }
-  
+  .tag.bonus { background: rgba(76,175,125,0.15); color: var(--ok); }
+  .tag.deduction { background: var(--danger-soft); color: var(--danger); }
+  .tag.vacation { background: rgba(77,141,224,0.15); color: var(--info); }
+
   .row-status-cell { display: flex; align-items: center; gap: 8px; }
   .save-indicator { width: 14px; height: 14px; flex-shrink: 0; }
   .spin {
@@ -157,26 +151,23 @@
   .check-tick { color: var(--ok); font-size: 14px; animation: popIn 0.25s ease; }
   @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   input.masrouf-input { width: 90px; }
-  
-  /* -------------------- SARAK TABLE -------------------- */
-  .sarak-table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+
+  .sarak-table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 20px; }
   .sarak-table-wrap table { font-size: 13.5px; }
   .sarak-table-wrap thead th { background: var(--panel-2); }
   .net-pay { color: var(--ok); font-weight: 800; font-family: var(--mono); }
-  
-  /* -------------------- PIN GATE -------------------- */
+  .section-title { font-size: 14px; font-weight: 700; color: var(--text-dim); margin: 22px 0 10px; }
+
   .pin-gate { max-width: 340px; margin: 60px auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; text-align: center; box-shadow: var(--shadow); }
   .pin-gate .lock-icon { font-size: 34px; margin-bottom: 10px; }
   .pin-gate h3 { margin: 0 0 6px; font-size: 16px; }
   .pin-gate p { color: var(--text-dim); font-size: 12.5px; margin-bottom: 18px; }
   .pin-gate input { width: 100%; text-align: center; font-size: 22px; letter-spacing: 10px; font-family: var(--mono); padding: 12px; margin-bottom: 14px; }
-  
-  /* -------------------- EMPTY STATE -------------------- */
+
   .empty-state { text-align: center; padding: 50px 20px; color: var(--text-faint); }
   .empty-state .icon { font-size: 30px; margin-bottom: 10px; }
   .empty-state .msg { font-size: 13px; }
-  
-  /* -------------------- TOASTS -------------------- */
+
   #toastContainer { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 999; align-items: center; }
   .toast { background: var(--panel-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 9px; font-size: 13px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px; animation: toastIn 0.25s ease; min-width: 200px; }
   .toast.success { border-color: var(--ok); }
@@ -184,16 +175,14 @@
   .toast.fade-out { animation: toastOut 0.3s ease forwards; }
   @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
-  
-  /* -------------------- DIALOG -------------------- */
+
   dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; width: 360px; box-shadow: var(--shadow); }
   dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); }
   dialog h3 { margin: 0 0 16px; font-size: 15px; color: var(--amber); }
   dialog label { display: block; margin-bottom: 5px; color: var(--text-faint); font-size: 12px; }
   dialog select, dialog input { width: 100%; margin-bottom: 14px; }
   .dialog-btns { display: flex; justify-content: flex-start; gap: 8px; margin-top: 4px; }
-  
-  /* -------------------- PRINT SLIP -------------------- */
+
   #printArea { display: none; }
   @media print {
     body * { visibility: hidden; }
@@ -206,8 +195,7 @@
     .slip-sign { margin-top: 50px; display: flex; justify-content: space-between; font-size: 13px; }
     .slip-sign div { border-top: 1px solid #000; width: 40%; text-align: center; padding-top: 6px; }
   }
-  
-  /* -------------------- RESPONSIVE -------------------- */
+
   @media (max-width: 720px) {
     .stat-row { grid-template-columns: repeat(2, 1fr); }
     header { padding: 12px 16px; }
@@ -239,14 +227,11 @@
     <button class="tab-btn active" data-tab="daily">📋 المراجعة اليومية</button>
     <button class="tab-btn" data-tab="sarak">💰 السرك الشهري</button>
   </div>
-  
-  <!-- ============================= DAILY VIEW ============================= -->
+
   <section id="dailyView" class="view active">
     <div class="stat-row" id="dailyStats"></div>
     <div class="controls">
       <button class="btn-info" id="openManualBtn">➕ إضافة بصمة يدوية</button>
-      
-      <!-- الفلتر الجديد بالتاريخ (من وإلى) -->
       <div class="field">
         <label>من تاريخ</label>
         <input type="date" id="dailyDateFrom">
@@ -255,7 +240,6 @@
         <label>إلى تاريخ</label>
         <input type="date" id="dailyDateTo">
       </div>
-      
       <div class="field">
         <label>الموظف</label>
         <select id="filterEmpDaily"><option value="">كل العمال</option></select>
@@ -266,7 +250,6 @@
     <div id="dailyContent"></div>
   </section>
 
-  <!-- ============================= SARAK VIEW ============================= -->
   <section id="sarakView" class="view">
     <div id="sarakGate"></div>
     <div id="sarakContent" style="display:none;">
@@ -276,6 +259,8 @@
         <div class="field"><label>إلى تاريخ</label><input type="date" id="sarakTo"></div>
         <div class="field"><label>بحث</label><input type="text" id="sarakSearch" placeholder="اسم أو كود الموظف"></div>
         <div class="spacer"></div>
+        <button class="btn-info" id="openEmpBtn">➕ موظف جديد</button>
+        <button class="btn-info" id="openTransBtn">💵 تسجيل معاملة</button>
         <button class="btn-ghost" id="exportCsvBtn">⬇️ تصدير Excel</button>
       </div>
       <div class="sarak-table-wrap">
@@ -283,17 +268,24 @@
           <thead>
             <tr>
               <th>كود</th><th>الاسم</th><th>أيام الحضور</th><th>صافي الساعات</th>
-              <th>أجر الساعة</th><th>إجمالي الراتب</th><th>المسحوبات</th><th>صافي القبض</th><th></th>
+              <th>أجر الساعة</th><th>إجمالي الراتب</th><th>المسحوبات</th><th>خصومات/مكافآت</th><th>صافي القبض</th><th></th>
             </tr>
           </thead>
           <tbody id="sarakBody"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title">📜 آخر المعاملات المالية</div>
+      <div class="sarak-table-wrap">
+        <table>
+          <thead><tr><th>التاريخ</th><th>الموظف</th><th>النوع</th><th>المبلغ</th><th>ملاحظة</th></tr></thead>
+          <tbody id="transBody"></tbody>
         </table>
       </div>
     </div>
   </section>
 </main>
 
-<!-- ============================= MANUAL PUNCH MODAL ============================= -->
 <dialog id="manualDialog">
   <h3>➕ إضافة بصمة يدوية</h3>
   <label>الموظف</label><select id="manualEmp"></select>
@@ -307,22 +299,45 @@
   </div>
 </dialog>
 
+<dialog id="employeeDialog">
+  <h3>➕ إضافة موظف جديد</h3>
+  <label>كود الموظف</label><input type="number" id="empId">
+  <label>الاسم</label><input type="text" id="empName">
+  <label>المرتب الشهري</label><input type="number" id="empSalary" value="0">
+  <label>سعر الساعة</label><input type="number" id="empRate" value="0" step="0.01">
+  <div class="dialog-btns">
+    <button class="btn-ok" id="saveEmpBtn">حفظ</button>
+    <button class="btn-ghost" id="cancelEmpBtn">إلغاء</button>
+  </div>
+</dialog>
+
+<dialog id="transactionDialog">
+  <h3>💵 تسجيل معاملة مالية</h3>
+  <label>الموظف</label><select id="transEmp"></select>
+  <label>نوع المعاملة</label>
+  <select id="transType">
+    <option value="Deduction">خصم</option>
+    <option value="Bonus">مكافأة</option>
+    <option value="VacationPay">بدل إجازة</option>
+  </select>
+  <label>المبلغ</label><input type="number" id="transAmount" value="0">
+  <label>ملاحظة (اختياري)</label><input type="text" id="transNote">
+  <div class="dialog-btns">
+    <button class="btn-ok" id="saveTransBtn">حفظ</button>
+    <button class="btn-ghost" id="cancelTransBtn">إلغاء</button>
+  </div>
+</dialog>
+
 <div id="toastContainer"></div>
 <div id="printArea"></div>
 
 <script>
-/* =================================================================
-   CONFIG
-   ================================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbwWIFBZzhc2fYU0uG4MnO0O8sUv6-EgzjBVORXzM1w4XT2ecHSmwk4jkKqPzrcNsOFE/exec";
 const SARAK_PIN = "1234";
 
-let appData = { employees: [], logs: [] };
+let appData = { employees: [], logs: [], transactions: [] };
 let sarakUnlocked = false;
 
-/* =================================================================
-   TOASTS 
-   ================================================================= */
 function showToast(msg, type = "info") {
   const icons = { success: "✅", error: "⚠️", info: "ℹ️" };
   const el = document.createElement("div");
@@ -335,9 +350,6 @@ function showToast(msg, type = "info") {
   }, 2600);
 }
 
-/* =================================================================
-   TABS
-   ================================================================= */
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -349,9 +361,6 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
-/* =================================================================
-   DATE HELPERS
-   ================================================================= */
 function toDateInputValue(d) {
   const pad = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -369,15 +378,13 @@ function fmtTimeOnly(dStr) {
   return d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
-/* =================================================================
-   LOAD DATA
-   ================================================================= */
 async function loadData() {
   const btn = document.getElementById("loadBtn");
   btn.disabled = true; btn.textContent = "⏳ جاري التحميل...";
   try {
     const res = await fetch(API_URL);
     appData = await res.json();
+    if (!appData.transactions) appData.transactions = [];
     populateFilters();
     renderDailyTab();
     if (document.getElementById("sarakView").classList.contains("active")) renderSarakTab();
@@ -391,18 +398,16 @@ async function loadData() {
 
 function populateFilters() {
   let opts = '<option value="">كل العمال</option>';
-  let manualOpts = "";
+  let plainOpts = "";
   [...appData.employees].sort((a, b) => a.name.localeCompare(b.name, "ar")).forEach(e => {
     opts += `<option value="${e.id}">${e.name}</option>`;
-    manualOpts += `<option value="${e.id}">${e.name}</option>`;
+    plainOpts += `<option value="${e.id}">${e.name}</option>`;
   });
   document.getElementById("filterEmpDaily").innerHTML = opts;
-  document.getElementById("manualEmp").innerHTML = manualOpts;
+  document.getElementById("manualEmp").innerHTML = plainOpts;
+  document.getElementById("transEmp").innerHTML = plainOpts;
 }
 
-/* =================================================================
-   DAILY REVIEW TAB (مع التعديلات الجديدة)
-   ================================================================= */
 function renderDailyTab() {
   const fromVal = document.getElementById("dailyDateFrom").value;
   const toVal = document.getElementById("dailyDateTo").value;
@@ -410,11 +415,9 @@ function renderDailyTab() {
   const container = document.getElementById("dailyContent");
 
   let logs = [...appData.logs];
-  
   const fromDate = fromVal ? new Date(fromVal + "T00:00:00") : null;
   const toDate = toVal ? new Date(toVal + "T23:59:59") : null;
 
-  // تطبيق فلتر التاريخ الجديد
   logs = logs.filter(l => {
     const logDate = new Date(l.timestamp);
     if (fromDate && logDate < fromDate) return false;
@@ -428,7 +431,7 @@ function renderDailyTab() {
   const missing = logs.filter(l => !l.status).length;
   const manual = logs.filter(l => l.manual).length;
   const totalMasrouf = logs.reduce((s, l) => s + (parseFloat(l.masrouf) || 0), 0);
-  
+
   document.getElementById("dailyStats").innerHTML = `
     <div class="stat-card"><div class="label">عدد البصمات</div><div class="value">${total}</div></div>
     <div class="stat-card"><div class="label">تحتاج مراجعة</div><div class="value ${missing ? "" : "ok"}" style="${missing ? "color:var(--danger)" : ""}">${missing}</div></div>
@@ -454,8 +457,7 @@ function renderDailyTab() {
   employeeOrder.forEach(userId => {
     const emp = appData.employees.find(e => e.id === userId);
     if (!emp) return;
-    
-    // الترتيب الجديد: أحدث بصمة فوق
+
     const empLogs = groups[userId].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     const card = document.createElement("div");
@@ -544,9 +546,6 @@ async function commitRowSave(rowNum) {
   }
 }
 
-/* =================================================================
-   MANUAL PUNCH
-   ================================================================= */
 document.getElementById("openManualBtn").addEventListener("click", () => document.getElementById("manualDialog").showModal());
 document.getElementById("cancelManualBtn").addEventListener("click", () => document.getElementById("manualDialog").close());
 document.getElementById("saveManualBtn").addEventListener("click", async () => {
@@ -568,9 +567,90 @@ document.getElementById("saveManualBtn").addEventListener("click", async () => {
   document.getElementById("saveManualBtn").disabled = false;
 });
 
-/* =================================================================
-   SARAK (MONTHLY PAYROLL)
-   ================================================================= */
+document.getElementById("openEmpBtn").addEventListener("click", () => document.getElementById("employeeDialog").showModal());
+document.getElementById("cancelEmpBtn").addEventListener("click", () => document.getElementById("employeeDialog").close());
+document.getElementById("saveEmpBtn").addEventListener("click", async () => {
+  const id = document.getElementById("empId").value.trim();
+  const name = document.getElementById("empName").value.trim();
+  const salary = document.getElementById("empSalary").value;
+  const rate = document.getElementById("empRate").value;
+  if (!id || !name) { showToast("لازم تدخل الكود والاسم", "error"); return; }
+  document.getElementById("saveEmpBtn").disabled = true;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "add_employee", id, name, salary, rate }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      document.getElementById("employeeDialog").close();
+      document.getElementById("empId").value = "";
+      document.getElementById("empName").value = "";
+      document.getElementById("empSalary").value = "0";
+      document.getElementById("empRate").value = "0";
+      showToast("تم إضافة الموظف", "success");
+      await loadData();
+    } else {
+      showToast(result.error || "فشلت الإضافة", "error");
+    }
+  } catch (err) { showToast("فشلت الإضافة", "error"); }
+  document.getElementById("saveEmpBtn").disabled = false;
+});
+
+document.getElementById("openTransBtn").addEventListener("click", () => document.getElementById("transactionDialog").showModal());
+document.getElementById("cancelTransBtn").addEventListener("click", () => document.getElementById("transactionDialog").close());
+document.getElementById("saveTransBtn").addEventListener("click", async () => {
+  const userId = document.getElementById("transEmp").value;
+  const emp = appData.employees.find(e => e.id === userId);
+  const type = document.getElementById("transType").value;
+  const amount = document.getElementById("transAmount").value;
+  const note = document.getElementById("transNote").value.trim();
+  if (!userId || !amount || parseFloat(amount) <= 0) { showToast("اختار الموظف واكتب مبلغ صحيح", "error"); return; }
+  document.getElementById("saveTransBtn").disabled = true;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "add_transaction", userId, userName: emp ? emp.name : "", type, amount, note }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      document.getElementById("transactionDialog").close();
+      document.getElementById("transAmount").value = "0";
+      document.getElementById("transNote").value = "";
+      showToast("تم تسجيل المعاملة", "success");
+      await loadData();
+    } else {
+      showToast(result.error || "فشل التسجيل", "error");
+    }
+  } catch (err) { showToast("فشل التسجيل", "error"); }
+  document.getElementById("saveTransBtn").disabled = false;
+});
+
+function transTypeLabel(type) {
+  if (type === "Bonus") return '<span class="tag bonus">مكافأة</span>';
+  if (type === "Deduction") return '<span class="tag deduction">خصم</span>';
+  if (type === "VacationPay") return '<span class="tag vacation">بدل إجازة</span>';
+  return type;
+}
+
+function renderTransactionsTable() {
+  const tbody = document.getElementById("transBody");
+  const list = [...(appData.transactions || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 30);
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش معاملات مسجلة.</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td data-label="التاريخ">${fmtDate(t.timestamp)}</td>
+      <td data-label="الموظف">${t.userName}</td>
+      <td data-label="النوع">${transTypeLabel(t.type)}</td>
+      <td data-label="المبلغ">${(parseFloat(t.amount) || 0).toFixed(2)} ج</td>
+      <td data-label="ملاحظة">${t.note || "-"}</td>
+    </tr>
+  `).join("");
+}
+
 function renderSarakTab() {
   if (!sarakUnlocked) { renderPinGate(); return; }
   document.getElementById("sarakGate").innerHTML = "";
@@ -620,8 +700,25 @@ function computeSarakRow(emp, fromDate, toDate) {
       openIn = null;
     }
   });
+
+  const myTrans = (appData.transactions || [])
+    .filter(t => t.userId === emp.id)
+    .filter(t => withinRange(new Date(t.timestamp), fromDate, toDate));
+
+  let bonuses = 0, deductions = 0, vacationPay = 0;
+  myTrans.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === "Deduction") deductions += amt;
+    else if (t.type === "Bonus") bonuses += amt;
+    else if (t.type === "VacationPay") vacationPay += amt;
+  });
+
   const hourlyRate = parseFloat(emp.rate) || 0;
-  return { emp, attendanceDays, totalHours, hourlyRate, totalSalary: totalHours * hourlyRate, totalMasrouf, netPay: (totalHours * hourlyRate) - totalMasrouf };
+  const totalSalary = totalHours * hourlyRate;
+  const adjustments = bonuses + vacationPay - deductions;
+  const netPay = totalSalary - totalMasrouf + adjustments;
+
+  return { emp, attendanceDays, totalHours, hourlyRate, totalSalary, totalMasrouf, bonuses, deductions, vacationPay, adjustments, netPay };
 }
 
 function renderSarak() {
@@ -634,7 +731,7 @@ function renderSarak() {
   const rows = appData.employees
     .filter(e => !search || e.name.toLowerCase().includes(search) || String(e.id).includes(search))
     .map(e => computeSarakRow(e, fromDate, toDate))
-    .filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0);
+    .filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0 || r.bonuses > 0 || r.deductions > 0 || r.vacationPay > 0);
 
   document.getElementById("sarakStats").innerHTML = `
     <div class="stat-card"><div class="label">عدد العمال</div><div class="value">${rows.length}</div></div>
@@ -644,26 +741,28 @@ function renderSarak() {
   `;
 
   const tbody = document.getElementById("sarakBody");
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش بيانات.</div></div></td></tr>`; return; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش بيانات.</div></div></td></tr>`; }
+  else {
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td data-label="كود">${r.emp.id}</td><td data-label="الاسم">${r.emp.name}</td>
+        <td data-label="أيام الحضور">${r.attendanceDays}</td><td data-label="صافي الساعات">${r.totalHours.toFixed(2)}</td>
+        <td data-label="أجر الساعة">${r.hourlyRate.toFixed(2)}</td><td data-label="إجمالي الراتب">${r.totalSalary.toFixed(2)}</td>
+        <td data-label="المسحوبات">${r.totalMasrouf.toFixed(2)}</td>
+        <td data-label="خصومات/مكافآت" style="color:${r.adjustments >= 0 ? 'var(--ok)' : 'var(--danger)'}">${r.adjustments >= 0 ? "+" : ""}${r.adjustments.toFixed(2)}</td>
+        <td data-label="صافي القبض" class="net-pay">${r.netPay.toFixed(2)}</td>
+        <td><button class="btn-sm btn-ghost print-btn" data-id="${r.emp.id}">🖨️ طباعة</button></td>
+      </tr>
+    `).join("");
 
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td data-label="كود">${r.emp.id}</td><td data-label="الاسم">${r.emp.name}</td>
-      <td data-label="أيام الحضور">${r.attendanceDays}</td><td data-label="صافي الساعات">${r.totalHours.toFixed(2)}</td>
-      <td data-label="أجر الساعة">${r.hourlyRate.toFixed(2)}</td><td data-label="إجمالي الراتب">${r.totalSalary.toFixed(2)}</td>
-      <td data-label="المسحوبات">${r.totalMasrouf.toFixed(2)}</td><td data-label="صافي القبض" class="net-pay">${r.netPay.toFixed(2)}</td>
-      <td><button class="btn-sm btn-ghost print-btn" data-id="${r.emp.id}">🖨️ طباعة</button></td>
-    </tr>
-  `).join("");
+    tbody.querySelectorAll(".print-btn").forEach(btn => {
+      btn.addEventListener("click", () => printSlip(rows.find(r => r.emp.id === btn.dataset.id), fromVal, toVal));
+    });
+  }
 
-  tbody.querySelectorAll(".print-btn").forEach(btn => {
-    btn.addEventListener("click", () => printSlip(rows.find(r => r.emp.id === btn.dataset.id), fromVal, toVal));
-  });
+  renderTransactionsTable();
 }
 
-/* =================================================================
-   PRINT SLIP & CSV
-   ================================================================= */
 function printSlip(r, fromVal, toVal) {
   document.getElementById("printArea").innerHTML = `
     <div class="slip-box">
@@ -674,6 +773,9 @@ function printSlip(r, fromVal, toVal) {
       <div class="slip-row"><span>صافي الساعات</span><strong>${r.totalHours.toFixed(2)} ساعة</strong></div>
       <div class="slip-row"><span>إجمالي الراتب</span><strong>${r.totalSalary.toFixed(2)} ج</strong></div>
       <div class="slip-row"><span>المسحوبات</span><strong>${r.totalMasrouf.toFixed(2)} ج</strong></div>
+      <div class="slip-row"><span>خصومات</span><strong>${r.deductions.toFixed(2)} ج</strong></div>
+      <div class="slip-row"><span>مكافآت</span><strong>${r.bonuses.toFixed(2)} ج</strong></div>
+      <div class="slip-row"><span>بدل إجازة</span><strong>${r.vacationPay.toFixed(2)} ج</strong></div>
       <div class="slip-row total"><span>صافي القبض</span><strong>${r.netPay.toFixed(2)} ج</strong></div>
       <div class="slip-sign"><div>توقيع الموظف</div><div>توقيع المسؤول</div></div>
     </div>
@@ -686,19 +788,17 @@ document.getElementById("exportCsvBtn").addEventListener("click", () => {
   const toVal = document.getElementById("sarakTo").value;
   const fromDate = fromVal ? new Date(fromVal + "T00:00:00") : null;
   const toDate = toVal ? new Date(toVal + "T23:59:59") : null;
-  const rows = appData.employees.map(e => computeSarakRow(e, fromDate, toDate)).filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0);
-  
-  const csv = ["كود,الاسم,الحضور,الساعات,أجر الساعة,إجمالي,المسحوبات,صافي"]
-    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.totalHours.toFixed(2), r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.netPay.toFixed(2)].join(",")));
-  
+  const rows = appData.employees.map(e => computeSarakRow(e, fromDate, toDate))
+    .filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0 || r.bonuses > 0 || r.deductions > 0 || r.vacationPay > 0);
+
+  const csv = ["كود,الاسم,الحضور,الساعات,أجر الساعة,إجمالي,المسحوبات,خصومات,مكافآت,بدل إجازة,صافي"]
+    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.totalHours.toFixed(2), r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.deductions.toFixed(2), r.bonuses.toFixed(2), r.vacationPay.toFixed(2), r.netPay.toFixed(2)].join(",")));
+
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" }));
   link.download = `السرك.csv`; link.click();
 });
 
-/* =================================================================
-   EVENTS & INIT
-   ================================================================= */
 document.getElementById("loadBtn").addEventListener("click", loadData);
 document.getElementById("dailyDateFrom").addEventListener("change", renderDailyTab);
 document.getElementById("dailyDateTo").addEventListener("change", renderDailyTab);
