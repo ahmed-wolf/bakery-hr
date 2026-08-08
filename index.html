@@ -183,19 +183,6 @@
   dialog select, dialog input { width: 100%; margin-bottom: 14px; }
   .dialog-btns { display: flex; justify-content: flex-start; gap: 8px; margin-top: 4px; }
 
-  #printArea { display: none; }
-  @media print {
-    body * { visibility: hidden; }
-    #printArea, #printArea * { visibility: visible; }
-    #printArea { display: block; position: absolute; top: 0; right: 0; width: 100%; color: #000; background: #fff; padding: 30px; }
-    .slip-box { border: 2px solid #000; padding: 24px; border-radius: 0; }
-    .slip-box h2 { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-    .slip-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #999; font-size: 15px; }
-    .slip-row.total { font-size: 20px; font-weight: 800; border-bottom: none; border-top: 2px solid #000; margin-top: 10px; padding-top: 14px; }
-    .slip-sign { margin-top: 50px; display: flex; justify-content: space-between; font-size: 13px; }
-    .slip-sign div { border-top: 1px solid #000; width: 40%; text-align: center; padding-top: 6px; }
-  }
-
   @media (max-width: 720px) {
     .stat-row { grid-template-columns: repeat(2, 1fr); }
     header { padding: 12px 16px; }
@@ -205,6 +192,20 @@
     tbody tr { padding: 10px 12px; border-bottom: 1px solid var(--line); }
     tbody td { display: flex; justify-content: space-between; align-items: center; border-bottom: none; padding: 6px 2px; }
     tbody td::before { content: attr(data-label); color: var(--text-faint); font-size: 11px; font-weight: 600; }
+  }
+
+  /* إعدادات الطباعة لطابعة الكاشير TSC */
+  #printArea { display: none; }
+  @media print {
+    header, main, dialog, #toastContainer { display: none !important; }
+    body { background: #fff; padding: 0; margin: 0; color: #000; }
+    #printArea { display: block !important; width: 100%; padding: 0; direction: rtl; }
+    .slip-box { padding: 5px; border-bottom: 2px dashed #000; }
+    .slip-box h2 { text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin: 5px 0 15px 0; font-size: 16px; font-weight: 900; }
+    .slip-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted #999; font-size: 12px; font-weight: 600; }
+    .slip-row.total { font-size: 16px; font-weight: 900; border-bottom: none; border-top: 1px solid #000; margin-top: 8px; padding-top: 8px; }
+    .slip-sign { margin-top: 30px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+    .slip-sign div { border-top: 1px solid #000; width: 40%; text-align: center; padding-top: 4px; }
   }
 </style>
 </head>
@@ -268,7 +269,7 @@
         <table>
           <thead>
             <tr>
-              <th>كود</th><th>الاسم</th><th>أيام الحضور</th><th>صافي الساعات</th>
+              <th>كود</th><th>الاسم</th><th>أيام الحضور</th><th>صافي الساعات</th><th>حالة الساعات</th>
               <th>أجر الساعة</th><th>إجمالي الراتب</th><th>المسحوبات</th><th>خصومات/مكافآت</th><th>صافي القبض</th><th></th>
             </tr>
           </thead>
@@ -580,7 +581,6 @@ document.getElementById("saveManualBtn").addEventListener("click", async () => {
     });
     document.getElementById("manualDialog").close();
     
-    // تصفير الخانات بعد الحفظ بنجاح
     document.getElementById("manualReason").value = "";
     document.getElementById("manualDate").value = "";
     document.getElementById("manualTimeOnly").value = "";
@@ -737,12 +737,24 @@ function computeSarakRow(emp, fromDate, toDate) {
     else if (t.type === "VacationPay") vacationPay += amt;
   });
 
+  // حساب الإضافي والعجز
+  const standardHours = attendanceDays * 8; 
+  const diffHours = totalHours - standardHours;
+  let diffStatus = "مظبوط";
+  if (diffHours > 0) diffStatus = "إضافي";
+  else if (diffHours < 0) diffStatus = "عجز";
+
   const hourlyRate = parseFloat(emp.rate) || 0;
+  const diffValue = diffHours * hourlyRate; // حساب قيمة الساعات بالفلوس
+  
   const totalSalary = totalHours * hourlyRate;
   const adjustments = bonuses + vacationPay - deductions;
   const netPay = totalSalary - totalMasrouf + adjustments;
 
-  return { emp, attendanceDays, totalHours, hourlyRate, totalSalary, totalMasrouf, bonuses, deductions, vacationPay, adjustments, netPay };
+  return { 
+    emp, attendanceDays, totalHours, standardHours, diffHours, diffStatus, diffValue,
+    hourlyRate, totalSalary, totalMasrouf, bonuses, deductions, vacationPay, adjustments, netPay 
+  };
 }
 
 function renderSarak() {
@@ -765,12 +777,17 @@ function renderSarak() {
   `;
 
   const tbody = document.getElementById("sarakBody");
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش بيانات.</div></div></td></tr>`; }
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش بيانات.</div></div></td></tr>`; }
   else {
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td data-label="كود">${r.emp.id}</td><td data-label="الاسم">${r.emp.name}</td>
-        <td data-label="أيام الحضور">${r.attendanceDays}</td><td data-label="صافي الساعات">${r.totalHours.toFixed(2)}</td>
+        <td data-label="أيام الحضور">${r.attendanceDays}</td>
+        <td data-label="صافي الساعات">${r.totalHours.toFixed(2)}</td>
+        <td data-label="حالة الساعات" style="color:${r.diffHours > 0 ? 'var(--ok)' : (r.diffHours < 0 ? 'var(--danger)' : 'var(--text)')}; direction: ltr;">
+          ${r.diffHours > 0 ? '+' : ''}${r.diffHours.toFixed(2)} س <br>
+          <span style="font-size: 11px;">(${r.diffValue > 0 ? '+' : ''}${r.diffValue.toFixed(2)} ج)</span>
+        </td>
         <td data-label="أجر الساعة">${r.hourlyRate.toFixed(2)}</td><td data-label="إجمالي الراتب">${r.totalSalary.toFixed(2)}</td>
         <td data-label="المسحوبات">${r.totalMasrouf.toFixed(2)}</td>
         <td data-label="خصومات/مكافآت" style="color:${r.adjustments >= 0 ? 'var(--ok)' : 'var(--danger)'}">${r.adjustments >= 0 ? "+" : ""}${r.adjustments.toFixed(2)}</td>
@@ -793,8 +810,16 @@ function printSlip(r, fromVal, toVal) {
       <h2>إيصال صرف راتب</h2>
       <div class="slip-row"><span>اسم الموظف</span><strong>${r.emp.name}</strong></div>
       <div class="slip-row"><span>الفترة</span><strong>${fromVal ? fmtDate(fromVal) : "بداية السجل"} — ${toVal ? fmtDate(toVal) : "النهاردة"}</strong></div>
-      <div class="slip-row"><span>أيام الحضور</span><strong>${r.attendanceDays}</strong></div>
-      <div class="slip-row"><span>صافي الساعات</span><strong>${r.totalHours.toFixed(2)} ساعة</strong></div>
+      <div class="slip-row"><span>أيام الحضور</span><strong>${r.attendanceDays} يوم</strong></div>
+      
+      <div class="slip-row">
+        <span>حالة الساعات (${r.diffStatus})</span>
+        <strong style="direction: ltr;">
+          ${r.diffHours > 0 ? '+' : ''}${r.diffHours.toFixed(2)} ساعة 
+          (${r.diffValue > 0 ? '+' : ''}${r.diffValue.toFixed(2)} ج)
+        </strong>
+      </div>
+      
       <div class="slip-row"><span>إجمالي الراتب</span><strong>${r.totalSalary.toFixed(2)} ج</strong></div>
       <div class="slip-row"><span>المسحوبات</span><strong>${r.totalMasrouf.toFixed(2)} ج</strong></div>
       <div class="slip-row"><span>خصومات</span><strong>${r.deductions.toFixed(2)} ج</strong></div>
@@ -815,8 +840,8 @@ document.getElementById("exportCsvBtn").addEventListener("click", () => {
   const rows = appData.employees.map(e => computeSarakRow(e, fromDate, toDate))
     .filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0 || r.bonuses > 0 || r.deductions > 0 || r.vacationPay > 0);
 
-  const csv = ["كود,الاسم,الحضور,الساعات,أجر الساعة,إجمالي,المسحوبات,خصومات,مكافآت,بدل إجازة,صافي"]
-    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.totalHours.toFixed(2), r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.deductions.toFixed(2), r.bonuses.toFixed(2), r.vacationPay.toFixed(2), r.netPay.toFixed(2)].join(",")));
+  const csv = ["كود,الاسم,الحضور,الساعات الفعلي,فرق الساعات,قيمة الساعات,حالة الساعات,أجر الساعة,إجمالي,المسحوبات,خصومات,مكافآت,بدل إجازة,صافي"]
+    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.totalHours.toFixed(2), r.diffHours.toFixed(2), r.diffValue.toFixed(2), r.diffStatus, r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.deductions.toFixed(2), r.bonuses.toFixed(2), r.vacationPay.toFixed(2), r.netPay.toFixed(2)].join(",")));
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" }));
