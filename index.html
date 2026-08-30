@@ -140,8 +140,9 @@
   .tag.bonus { background: rgba(76,175,125,0.15); color: var(--ok); }
   .tag.deduction { background: var(--danger-soft); color: var(--danger); }
   .tag.vacation { background: rgba(77,141,224,0.15); color: var(--info); }
+  .tag.sequence { background: rgba(232,163,61,0.16); color: var(--amber); }
 
-  .row-status-cell { display: flex; align-items: center; gap: 8px; }
+  .row-status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .save-indicator { width: 14px; height: 14px; flex-shrink: 0; }
   .spin {
     width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--amber);
@@ -467,6 +468,10 @@ function renderDailyTab() {
 
     const empLogs = groups[userId].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+    // تسلسل زمني (تصاعدي) لنفس الموظف عشان نكتشف بصمات ناقصة/متكررة
+    const ascLogs = [...empLogs].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const problemRows = detectSequenceIssues(ascLogs);
+
     const card = document.createElement("div");
     card.className = "emp-group";
     card.innerHTML = `
@@ -477,7 +482,7 @@ function renderDailyTab() {
       </div>
       <table>
         <thead><tr><th>التاريخ</th><th>الوقت</th><th>الحالة</th><th>المصروف</th><th></th></tr></thead>
-        <tbody>${empLogs.map(rowTemplate).join("")}</tbody>
+        <tbody>${empLogs.map(l => rowTemplate(l, problemRows.has(String(l.row)))).join("")}</tbody>
       </table>
     `;
     container.appendChild(card);
@@ -486,7 +491,25 @@ function renderDailyTab() {
   attachDailyRowEvents();
 }
 
-function rowTemplate(log) {
+// بيرجع مجموعة أرقام الصفوف اللي فيها تسلسل بصمات غلط لنفس الموظف
+// (IN بعد IN من غير OUT بينهم، أو OUT من غير IN قبله) — عشان نتجنب باگ
+// إن الشيفت اللي فات يضيع بصمت من حساب السرك
+function detectSequenceIssues(logsAsc) {
+  const problemRows = new Set();
+  let openIn = null;
+  logsAsc.forEach(log => {
+    if (log.status === "IN") {
+      if (openIn) problemRows.add(String(log.row));
+      openIn = log;
+    } else if (log.status === "OUT") {
+      if (!openIn) problemRows.add(String(log.row));
+      openIn = null;
+    }
+  });
+  return problemRows;
+}
+
+function rowTemplate(log, hasSequenceIssue = false) {
   const missing = !log.status;
   return `
     <tr class="${missing ? "row-missing" : ""} ${log.manual ? "row-manual" : ""}" data-row="${log.row}">
@@ -502,6 +525,7 @@ function rowTemplate(log) {
           </select>
           ${missing ? '<span class="tag missing">غير محدد</span>' : ""}
           ${log.manual ? `<span class="tag manual" title="${log.reason ? log.reason.replace(/"/g, '&quot;') : ''}">يدوي${log.reason ? " · " + log.reason : ""}</span>` : ""}
+          ${hasSequenceIssue ? '<span class="tag sequence" title="بصمة جاية بعد بصمة من نفس النوع من غير الطرف التاني — ده بيضيع شيفت كامل من حساب السرك">⚠️ تسلسل غلط</span>' : ""}
         </div>
       </td>
       <td data-label="المصروف"><input type="number" class="masrouf-input" data-row="${log.row}" value="${log.masrouf || 0}"></td>
@@ -714,13 +738,18 @@ function computeSarakRow(emp, fromDate, toDate) {
     .filter(l => withinRange(new Date(l.timestamp), fromDate, toDate))
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-  let totalHours = 0, attendanceDays = 0, totalMasrouf = 0, openIn = null;
+  let totalHours = 0, shiftsCount = 0, totalMasrouf = 0, openIn = null;
+  const distinctDays = new Set(); // أيام حضور حقيقية (تقويمية)، مش عدد الورديات
   myLogs.forEach(log => {
     totalMasrouf += parseFloat(log.masrouf) || 0;
     if (log.status === "IN") { openIn = new Date(log.timestamp); }
     else if (log.status === "OUT" && openIn) {
       const diff = (new Date(log.timestamp) - openIn) / 3600000;
-      if (diff > 0 && diff < 24) { totalHours += diff; attendanceDays += 1; }
+      if (diff > 0 && diff < 24) {
+        totalHours += diff;
+        shiftsCount += 1;
+        distinctDays.add(toDateInputValue(openIn)); // اليوم اللي بدأ فيه الشيفت
+      }
       openIn = null;
     }
   });
@@ -737,8 +766,12 @@ function computeSarakRow(emp, fromDate, toDate) {
     else if (t.type === "VacationPay") vacationPay += amt;
   });
 
+  // أيام الحضور الحقيقية (مش عدد الورديات) — لو الموظف اشتغل شيفتين في نفس اليوم
+  // (صبح + بليل مثلاً) بيتحسبوا يوم واحد هنا، عشان "حالة الساعات" تبقى دقيقة
+  const attendanceDays = distinctDays.size;
+
   // حساب الإضافي والعجز
-  const standardHours = attendanceDays * 8; 
+  const standardHours = attendanceDays * 8;
   const diffHours = totalHours - standardHours;
   let diffStatus = "مظبوط";
   if (diffHours > 0) diffStatus = "إضافي";
@@ -752,7 +785,7 @@ function computeSarakRow(emp, fromDate, toDate) {
   const netPay = totalSalary - totalMasrouf + adjustments;
 
   return { 
-    emp, attendanceDays, totalHours, standardHours, diffHours, diffStatus, diffValue,
+    emp, attendanceDays, shiftsCount, totalHours, standardHours, diffHours, diffStatus, diffValue,
     hourlyRate, totalSalary, totalMasrouf, bonuses, deductions, vacationPay, adjustments, netPay 
   };
 }
@@ -782,7 +815,7 @@ function renderSarak() {
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td data-label="كود">${r.emp.id}</td><td data-label="الاسم">${r.emp.name}</td>
-        <td data-label="أيام الحضور">${r.attendanceDays}</td>
+        <td data-label="أيام الحضور">${r.attendanceDays}${r.shiftsCount > r.attendanceDays ? ` <span style="color:var(--text-faint);font-size:11px">(${r.shiftsCount} وردية)</span>` : ""}</td>
         <td data-label="صافي الساعات">${r.totalHours.toFixed(2)}</td>
         <td data-label="حالة الساعات" style="color:${r.diffHours > 0 ? 'var(--ok)' : (r.diffHours < 0 ? 'var(--danger)' : 'var(--text)')}; direction: ltr;">
           ${r.diffHours > 0 ? '+' : ''}${r.diffHours.toFixed(2)} س <br>
@@ -840,8 +873,8 @@ document.getElementById("exportCsvBtn").addEventListener("click", () => {
   const rows = appData.employees.map(e => computeSarakRow(e, fromDate, toDate))
     .filter(r => r.attendanceDays > 0 || r.totalMasrouf > 0 || r.bonuses > 0 || r.deductions > 0 || r.vacationPay > 0);
 
-  const csv = ["كود,الاسم,الحضور,الساعات الفعلي,فرق الساعات,قيمة الساعات,حالة الساعات,أجر الساعة,إجمالي,المسحوبات,خصومات,مكافآت,بدل إجازة,صافي"]
-    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.totalHours.toFixed(2), r.diffHours.toFixed(2), r.diffValue.toFixed(2), r.diffStatus, r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.deductions.toFixed(2), r.bonuses.toFixed(2), r.vacationPay.toFixed(2), r.netPay.toFixed(2)].join(",")));
+  const csv = ["كود,الاسم,الحضور,عدد الورديات,الساعات الفعلي,فرق الساعات,قيمة الساعات,حالة الساعات,أجر الساعة,إجمالي,المسحوبات,خصومات,مكافآت,بدل إجازة,صافي"]
+    .concat(rows.map(r => [r.emp.id, r.emp.name, r.attendanceDays, r.shiftsCount, r.totalHours.toFixed(2), r.diffHours.toFixed(2), r.diffValue.toFixed(2), r.diffStatus, r.hourlyRate.toFixed(2), r.totalSalary.toFixed(2), r.totalMasrouf.toFixed(2), r.deductions.toFixed(2), r.bonuses.toFixed(2), r.vacationPay.toFixed(2), r.netPay.toFixed(2)].join(",")));
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" }));
