@@ -249,6 +249,7 @@
       </div>
       <button class="btn-ghost btn-sm" id="clearDateBtn">عرض كل الأيام</button>
       <div class="spacer"></div>
+      <button class="btn-ghost" id="exportDailyCsvBtn">⬇️ تصدير البصمات (Excel)</button>
     </div>
     <div id="dailyContent"></div>
   </section>
@@ -414,11 +415,12 @@ function populateFilters() {
   document.getElementById("transEmp").innerHTML = plainOpts;
 }
 
-function renderDailyTab() {
+// فلترة البصمات حسب فترة "المراجعة اليومية" الحالية (من/إلى + الموظف المحدد)
+// بنستخدمها في العرض وفي التصدير عشان الاتنين يفضلوا متطابقين دايمًا
+function getFilteredDailyLogs({ respectIgnored = true } = {}) {
   const fromVal = document.getElementById("dailyDateFrom").value;
   const toVal = document.getElementById("dailyDateTo").value;
   const empFilter = document.getElementById("filterEmpDaily").value;
-  const container = document.getElementById("dailyContent");
 
   let logs = [...appData.logs];
   const fromDate = fromVal ? new Date(fromVal + "T00:00:00") : null;
@@ -432,8 +434,14 @@ function renderDailyTab() {
   });
 
   if (empFilter) logs = logs.filter(l => l.userId === empFilter);
+  if (respectIgnored && !showIgnored) logs = logs.filter(l => l.status !== "IGNORE");
 
-  if (!showIgnored) logs = logs.filter(l => l.status !== "IGNORE");
+  return { logs, fromVal, toVal };
+}
+
+function renderDailyTab() {
+  const container = document.getElementById("dailyContent");
+  const { logs } = getFilteredDailyLogs();
 
   const total = logs.length;
   const missing = logs.filter(l => !l.status).length;
@@ -879,6 +887,60 @@ document.getElementById("exportCsvBtn").addEventListener("click", () => {
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv.join("\n")], { type: "text/csv;charset=utf-8;" }));
   link.download = `السرك.csv`; link.click();
+});
+
+function statusLabel(status) {
+  if (status === "IN") return "دخول";
+  if (status === "OUT") return "خروج";
+  if (status === "IGNORE") return "متجاهل";
+  return "غير محدد";
+}
+
+function csvEscape(val) {
+  const s = String(val ?? "");
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+// تصدير البصمات (مش السرك) لملف إكسيل حسب الفترة والموظف المحددين في تبويب
+// "المراجعة اليومية": اسم الموظف، كوده، التاريخ، الساعة، نوع البصمة (دخول/خروج)، ولو يدوي يكتب "يدوي"
+document.getElementById("exportDailyCsvBtn").addEventListener("click", () => {
+  const { logs, fromVal, toVal } = getFilteredDailyLogs({ respectIgnored: false });
+
+  if (!logs.length) { showToast("مفيش بصمات في الفترة دي عشان تتصدر", "error"); return; }
+
+  const rows = [...logs].sort((a, b) => {
+    const empA = appData.employees.find(e => e.id === a.userId);
+    const empB = appData.employees.find(e => e.id === b.userId);
+    const nameA = empA ? empA.name : String(a.userId);
+    const nameB = empB ? empB.name : String(b.userId);
+    const nameCmp = nameA.localeCompare(nameB, "ar");
+    if (nameCmp !== 0) return nameCmp;
+    return new Date(a.timestamp) - new Date(b.timestamp);
+  });
+
+  const header = ["اسم الموظف", "كود الموظف", "التاريخ", "الساعة", "نوع البصمة", "يدوي؟", "سبب البصمة اليدوية", "المصروف"];
+  const csvRows = [header.map(csvEscape).join(",")];
+
+  rows.forEach(log => {
+    const emp = appData.employees.find(e => e.id === log.userId);
+    csvRows.push([
+      emp ? emp.name : log.userId,
+      log.userId,
+      fmtDate(log.timestamp),
+      fmtTimeOnly(log.timestamp),
+      statusLabel(log.status),
+      log.manual ? "يدوي" : "لا",
+      log.manual && log.reason ? log.reason : "",
+      (parseFloat(log.masrouf) || 0).toFixed(2),
+    ].map(csvEscape).join(","));
+  });
+
+  const periodLabel = `${fromVal || "البداية"}_الى_${toVal || "النهاردة"}`;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" }));
+  link.download = `بصمات_${periodLabel}.csv`;
+  link.click();
+  showToast("تم تصدير البصمات", "success");
 });
 
 document.getElementById("loadBtn").addEventListener("click", loadData);
