@@ -391,6 +391,8 @@
     <option value="Bonus">مكافأة</option>
     <option value="VacationPay">بدل إجازة</option>
   </select>
+  <label>تُحسب ضمن راتب شهر</label>
+  <input type="month" id="transMonth">
   <div id="vacationDaysField" style="display:none;">
     <label>عدد أيام الإجازة</label>
     <input type="number" id="vacationDays" value="1" min="1" step="1">
@@ -419,7 +421,7 @@ let showIgnored = false;
 let currentLoggedEmp = null;
 
 function showToast(msg, type = "info") {
-  const icons = { success: "✅", error: "⚠️", info: "ℹ️️" };
+  const icons = { success: "✅", error: "⚠️", info: "ℹ" };
   const el = document.createElement("div");
   el.className = `toast ${type}`;
   el.innerHTML = `<span class="icon">${icons[type]}</span><span>${msg}</span>`;
@@ -510,6 +512,10 @@ function toDateInputValue(d) {
   const pad = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+function toMonthInputValue(d) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
 function firstOfMonth() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -521,6 +527,21 @@ function fmtDate(dStr) {
 function fmtTimeOnly(dStr) {
   const d = new Date(dStr);
   return d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
+function getTransactionMonth(t) {
+  if (t.targetMonth) return t.targetMonth;
+  const match = (t.note || "").match(/\[شهر:\s*(\d{4}-\d{2})\]/);
+  if (match) return match[1];
+  const d = new Date(t.timestamp);
+  return !isNaN(d) ? toMonthInputValue(d) : "";
+}
+
+function formatTransNote(t) {
+  const m = getTransactionMonth(t);
+  const cleanNote = (t.note || "").replace(/\[شهر:\s*\d{4}-\d{2}\]\s*/, "").trim();
+  const monthBadge = m ? `<span class="tag manual" style="margin-inline-end:6px;">📅 راتب ${m}</span>` : "";
+  return `${monthBadge}${cleanNote || "-"}`;
 }
 
 async function loadData() {
@@ -755,17 +776,62 @@ function updateVacationCalc() {
 }
 document.getElementById("transType").addEventListener("change", updateVacationCalc); document.getElementById("vacationDays").addEventListener("input", updateVacationCalc); document.getElementById("transEmp").addEventListener("change", updateVacationCalc);
 
-document.getElementById("openTransBtn").addEventListener("click", () => { document.getElementById("transactionDialog").showModal(); updateVacationCalc(); });
+document.getElementById("openTransBtn").addEventListener("click", () => {
+  const sarakFromVal = document.getElementById("sarakFrom").value;
+  const defaultMonth = sarakFromVal ? sarakFromVal.slice(0, 7) : toMonthInputValue(new Date());
+  document.getElementById("transMonth").value = defaultMonth;
+  document.getElementById("transactionDialog").showModal();
+  updateVacationCalc();
+});
+
 document.getElementById("cancelTransBtn").addEventListener("click", () => document.getElementById("transactionDialog").close());
+
 document.getElementById("saveTransBtn").addEventListener("click", async () => {
-  const userId = document.getElementById("transEmp").value, emp = appData.employees.find(e => e.id === userId), type = document.getElementById("transType").value, amount = document.getElementById("transAmount").value, note = document.getElementById("transNote").value.trim();
-  if (!userId || !amount || parseFloat(amount) <= 0) { showToast("اختار الموظف واكتب مبلغ صحيح", "error"); return; }
+  const userId = document.getElementById("transEmp").value;
+  const emp = appData.employees.find(e => e.id === userId);
+  const type = document.getElementById("transType").value;
+  const amount = document.getElementById("transAmount").value;
+  const targetMonth = document.getElementById("transMonth").value || toMonthInputValue(new Date());
+  const rawNote = document.getElementById("transNote").value.trim();
+
+  if (!userId || !amount || parseFloat(amount) <= 0) {
+    showToast("اختار الموظف واكتب مبلغ صحيح", "error");
+    return;
+  }
+
+  const finalNote = `[شهر: ${targetMonth}]${rawNote ? " " + rawNote : ""}`;
+  const customTimestamp = `${targetMonth}-15T12:00:00`;
+
   document.getElementById("saveTransBtn").disabled = true;
   try {
-    const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "add_transaction", userId, userName: emp ? emp.name : "", type, amount, note }) });
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "add_transaction",
+        userId,
+        userName: emp ? emp.name : "",
+        type,
+        amount,
+        note: finalNote,
+        targetMonth,
+        timestamp: customTimestamp
+      })
+    });
     const result = await res.json();
-    if (result.success) { document.getElementById("transactionDialog").close(); document.getElementById("transAmount").value = "0"; document.getElementById("transNote").value = ""; document.getElementById("vacationDays").value = "1"; showToast("تم تسجيل المعاملة", "success"); await loadData(); } else { showToast(result.error || "فشل التسجيل", "error"); }
-  } catch (err) { showToast("فشل التسجيل", "error"); }
+    if (result.success) {
+      document.getElementById("transactionDialog").close();
+      document.getElementById("transAmount").value = "0";
+      document.getElementById("transNote").value = "";
+      document.getElementById("vacationDays").value = "1";
+      showToast(`تم تسجيل المعاملة ضمن شهر ${targetMonth}`, "success");
+      await loadData();
+    } else {
+      showToast(result.error || "فشل التسجيل", "error");
+    }
+  } catch (err) {
+    showToast("فشل التسجيل", "error");
+  }
   document.getElementById("saveTransBtn").disabled = false;
 });
 
@@ -785,7 +851,7 @@ function renderTransactionsTable() {
   const tbody = document.getElementById("transBody");
   const list = [...(appData.transactions || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 30);
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🧾</div><div class="msg">مفيش معاملات مسجلة.</div></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(t => `<tr><td data-label="التاريخ">${fmtDate(t.timestamp)}</td><td data-label="الموظف">${t.userName}</td><td data-label="النوع">${transTypeLabel(t.type)}</td><td data-label="المبلغ">${(parseFloat(t.amount) || 0).toFixed(2)} ج</td><td data-label="ملاحظة">${t.note || "-"}</td><td><button class="btn-sm btn-ghost delete-trans-btn" data-row="${t.row ?? ""}" title="حذف">🗑️</button></td></tr>`).join("");
+  tbody.innerHTML = list.map(t => `<tr><td data-label="التاريخ">${fmtDate(t.timestamp)}</td><td data-label="الموظف">${t.userName}</td><td data-label="النوع">${transTypeLabel(t.type)}</td><td data-label="المبلغ">${(parseFloat(t.amount) || 0).toFixed(2)} ج</td><td data-label="ملاحظة">${formatTransNote(t)}</td><td><button class="btn-sm btn-ghost delete-trans-btn" data-row="${t.row ?? ""}" title="حذف">🗑️</button></td></tr>`).join("");
   tbody.querySelectorAll(".delete-trans-btn").forEach(btn => { btn.addEventListener("click", () => deleteTransaction(btn.dataset.row)); });
 }
 
@@ -804,8 +870,22 @@ function computeSarakRow(emp, fromDate, toDate) {
     }
   });
 
+  const activeMonth = fromDate ? toMonthInputValue(fromDate) : null;
+
   let bonuses = 0, deductions = 0, vacationPay = 0;
-  (appData.transactions || []).filter(t => t.userId === emp.id && withinRange(new Date(t.timestamp), fromDate, toDate)).forEach(t => { const amt = parseFloat(t.amount) || 0; if (t.type === "Deduction") deductions += amt; else if (t.type === "Bonus") bonuses += amt; else if (t.type === "VacationPay") vacationPay += amt; });
+  (appData.transactions || []).filter(t => {
+    if (t.userId !== emp.id) return false;
+    const match = (t.note || "").match(/\[شهر:\s*(\d{4}-\d{2})\]/);
+    if (match && activeMonth) {
+      return match[1] === activeMonth;
+    }
+    return withinRange(new Date(t.timestamp), fromDate, toDate);
+  }).forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === "Deduction") deductions += amt;
+    else if (t.type === "Bonus") bonuses += amt;
+    else if (t.type === "VacationPay") vacationPay += amt;
+  });
 
   const attendanceDays = distinctDays.size, diffHours = totalHours - (attendanceDays * 8), hourlyRate = parseFloat(emp.rate) || 0;
   return { emp, attendanceDays, shiftsCount, totalHours, diffHours, diffStatus: diffHours > 0 ? "إضافي" : (diffHours < 0 ? "عجز" : "مظبوط"), diffValue: diffHours * hourlyRate, hourlyRate, totalSalary: totalHours * hourlyRate, totalMasrouf, bonuses, deductions, vacationPay, adjustments: bonuses + vacationPay - deductions, netPay: (totalHours * hourlyRate) - totalMasrouf + (bonuses + vacationPay - deductions) };
